@@ -53,8 +53,11 @@ func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("azure: error getting azure session: %w", err)
 	}
 
-	dlResp, _ := session.NewBlobURL(key).
+	dlResp, err := session.NewBlobURL(key).
 		Download(r.Context(), 0, 0, azblob.BlobAccessConditions{}, false)
+	if err != nil {
+		return nil, fmt.Errorf("azure: error downloading blob: %w", err)
+	}
 
 	data := &bytes.Buffer{}
 	bodyData := dlResp.Body(azblob.RetryReaderOptions{})
