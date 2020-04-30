@@ -18,21 +18,23 @@ import (
 const ImageSourceTypeAzure ImageSourceType = "azure"
 
 var (
-	credential azblob.TokenCredential
+	credential *azblob.TokenCredential
 )
 
 func init() {
-	if err := initAzure(); err != nil {
-		panic(err.Error())
-	}
-
 	RegisterSource(ImageSourceTypeAzure, NewAzureImageSource)
 }
 
 func newAzureSession(container string) (*azblob.ContainerURL, error) {
+	if credential == nil {
+		if err := initAzure(); err != nil {
+			panic(err.Error())
+		}
+	}
+
 	accountName := os.Getenv("AZURE_ACCOUNT_NAME")
 
-	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+	p := azblob.NewPipeline(*credential, azblob.PipelineOptions{})
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", accountName))
 	containerURL := azblob.NewServiceURL(*u, p).NewContainerURL(container)
 
@@ -163,7 +165,8 @@ func initAzure() error {
 		}
 	}(spt)
 
-	credential = azblob.NewTokenCredential("", tokenRefresher)
+	c := azblob.NewTokenCredential("", tokenRefresher)
+	credential = &c
 
 	return nil
 }
