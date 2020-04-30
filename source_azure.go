@@ -28,7 +28,7 @@ func init() {
 func newAzureSession(container string) (*azblob.ContainerURL, error) {
 	if credential == nil {
 		if err := initAzure(); err != nil {
-			panic(err.Error())
+			return nil, err
 		}
 	}
 
