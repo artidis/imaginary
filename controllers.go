@@ -156,6 +156,20 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
+	} else if url := parseAzureSASBlobURL(r); len(url) != 0 {
+		if err := uploadBufferToAzureSAS(image.Body, url); err != nil {
+			ErrorReply(
+				r, w,
+				NewError(
+					fmt.Sprintf("Error while processing the azure sas image: %s", err),
+					InternalError,
+				), o,
+			)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 
 	// Expose Content-Length response header
