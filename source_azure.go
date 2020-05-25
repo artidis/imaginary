@@ -78,6 +78,54 @@ func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
+func (s *AzureImageSource) DownloadImage(container, key string) ([]byte, error) {
+	session, err := newAzureSession(container)
+	if err != nil {
+		return nil, fmt.Errorf("azure: error getting azure session: %w", err)
+	}
+
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
+
+	dlResp, err := session.NewBlobURL(key).
+		Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+	if err != nil {
+		return nil, fmt.Errorf("azure: error downloading blob: %w", err)
+	}
+
+	data := &bytes.Buffer{}
+	bodyData := dlResp.Body(azblob.RetryReaderOptions{})
+	defer bodyData.Close()
+
+	t := time.Now()
+	if _, err := data.ReadFrom(bodyData); err != nil {
+		fmt.Printf("elapsed: %s\n", t.Sub(time.Now()))
+		return nil, fmt.Errorf("azure: error reading data: %w", err)
+	}
+
+	return data.Bytes(), nil
+}
+
+func (s *AzureImageSource) UploadImage(data []byte, fileKey, container string) error {
+	session, err := newAzureSession(container)
+	if err != nil {
+		return fmt.Errorf("azure: error getting azure session: %w", err)
+	}
+
+	if _, err := session.
+		NewBlockBlobURL(fileKey).
+		Upload(
+			context.Background(),
+			bytes.NewReader(data),
+			azblob.BlobHTTPHeaders{},
+			azblob.Metadata{},
+			azblob.BlobAccessConditions{},
+		); err != nil {
+		return fmt.Errorf("azure: uploading image failed: %w", err)
+	}
+
+	return nil
+}
+
 func uploadBufferToAzure(data []byte, outputBlobKey, container string) error {
 	session, err := newAzureSession(container)
 	if err != nil {

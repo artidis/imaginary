@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"strconv"
@@ -221,4 +222,54 @@ func formController(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	_, _ = w.Write([]byte(html))
+}
+
+func DZSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		ErrorReply(r, w, ErrMethodNotAllowed, ServerOptions{})
+		return
+	}
+
+	req := struct {
+		StorageProvider string `json:"storage_provider"`
+		Container       string `json:"container"`
+		ImageKey        string `json:"image_key"`
+	}{}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: reading body failed: %s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := json.Unmarshal(data, &req); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: error unmarshalling data :%s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
+	fmt.Println("asdf")
+	if err := UploadDZFiles(req.StorageProvider, req.Container, req.ImageKey); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: uploading dz files error: %s", err),
+				InternalError,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
 }
