@@ -124,7 +124,7 @@ func UploadDZFiles(storageProvider, container, imageKey string) error {
 				},
 			),
 		); err != nil {
-			return fmt.Errorf("dzfiles: error walking dir path: %w\n", err)
+			return fmt.Errorf("dzfiles: error walking dir path: %w", err)
 		}
 
 		if err := g.Wait(); err != nil {

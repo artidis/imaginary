@@ -84,10 +84,8 @@ func (s *AzureImageSource) DownloadImage(container, key string) ([]byte, error) 
 		return nil, fmt.Errorf("azure: error getting azure session: %w", err)
 	}
 
-	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1*time.Hour))
-
 	dlResp, err := session.NewBlobURL(key).
-		Download(ctx, 0, 0, azblob.BlobAccessConditions{}, false)
+		Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false)
 	if err != nil {
 		return nil, fmt.Errorf("azure: error downloading blob: %w", err)
 	}
@@ -96,9 +94,7 @@ func (s *AzureImageSource) DownloadImage(container, key string) ([]byte, error) 
 	bodyData := dlResp.Body(azblob.RetryReaderOptions{})
 	defer bodyData.Close()
 
-	t := time.Now()
 	if _, err := data.ReadFrom(bodyData); err != nil {
-		fmt.Printf("elapsed: %s\n", t.Sub(time.Now()))
 		return nil, fmt.Errorf("azure: error reading data: %w", err)
 	}
 
