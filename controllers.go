@@ -260,7 +260,6 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("asdf")
 	if err := UploadDZFiles(req.StorageProvider, req.Container, req.ImageKey); err != nil {
 		ErrorReply(r, w,
 			NewError(

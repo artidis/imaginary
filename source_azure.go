@@ -34,7 +34,11 @@ func newAzureSession(container string) (*azblob.ContainerURL, error) {
 
 	accountName := os.Getenv("AZURE_ACCOUNT_NAME")
 
-	p := azblob.NewPipeline(*credential, azblob.PipelineOptions{})
+	p := azblob.NewPipeline(*credential, azblob.PipelineOptions{
+		Retry: azblob.RetryOptions{
+			TryTimeout: 1 * time.Hour,
+		},
+	})
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", accountName))
 	containerURL := azblob.NewServiceURL(*u, p).NewContainerURL(container)
 
