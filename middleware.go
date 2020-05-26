@@ -25,10 +25,11 @@ func Middleware(fn func(http.ResponseWriter, *http.Request), o ServerOptions) ht
 		next = throttle(next, o)
 	}
 	if o.CORS {
-		next = cors.New(cors.Options{
-			AllowedOrigins:   o.CORSURLs,
-			AllowCredentials: true,
-		}).Handler(next)
+		next = cors.AllowAll().Handler(next)
+		// next = cors.New(cors.Options{
+		// 	AllowedOrigins:   o.CORSURLs,
+		// 	AllowCredentials: true,
+		// }).Handler(next)
 	}
 	if o.APIKey != "" {
 		next = authorizeClient(next, o)
