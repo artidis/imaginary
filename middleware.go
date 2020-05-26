@@ -37,7 +37,7 @@ func Middleware(fn func(http.ResponseWriter, *http.Request), o ServerOptions) ht
 		next = setCacheHeaders(next, o.HTTPCacheTTL)
 	}
 
-	return validate(defaultHeaders(next), o)
+	return defaultHeaders(next)
 }
 
 func ImageMiddleware(o ServerOptions) func(Operation) http.Handler {
@@ -86,17 +86,6 @@ func throttle(next http.Handler, o ServerOptions) http.Handler {
 	}
 
 	return httpRateLimiter.RateLimit(next)
-}
-
-func validate(next http.Handler, o ServerOptions) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodPost {
-			ErrorReply(r, w, ErrMethodNotAllowed, o)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 func validateImage(next http.Handler, o ServerOptions) http.Handler {
