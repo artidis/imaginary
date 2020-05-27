@@ -231,9 +231,9 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := struct {
-		StorageProvider string `json:"storage_provider"`
+		StorageProvider string `json:"storageProvider"`
 		Container       string `json:"container"`
-		ImageKey        string `json:"image_key"`
+		ImageKey        string `json:"imageKey"`
 	}{}
 
 	data, err := ioutil.ReadAll(r.Body)

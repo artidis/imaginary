@@ -27,8 +27,16 @@ func Middleware(fn func(http.ResponseWriter, *http.Request), o ServerOptions) ht
 	if o.CORS {
 		next = cors.AllowAll().Handler(next)
 		// next = cors.New(cors.Options{
-		// 	AllowedOrigins:   o.CORSURLs,
+		// 	AllowedOrigins: o.CORSURLs,
+		// 	AllowedMethods: []string{
+		// 		http.MethodPost,
+		// 		http.MethodGet,
+		// 		http.MethodOptions,
+		// 		http.MethodHead,
+		// 	},
+		// 	AllowedHeaders:   []string{"*"},
 		// 	AllowCredentials: true,
+		// 	Debug:            true,
 		// }).Handler(next)
 	}
 	if o.APIKey != "" {
