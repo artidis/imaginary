@@ -22,29 +22,53 @@ func init() {
 }
 
 type ImageDownUploader interface {
-	DownloadImage(container, imageKey string) ([]byte, error)
-	UploadImage(data []byte, filekey, container string) error
+	DownloadImage(container, imageKey, zone string) ([]byte, error)
+	UploadImage(data []byte, fileKey, container, zone string) error
 }
 
-func UploadDZFiles(storageProvider, container, imageKey string) error {
-	if storageProvider != AzureProvider {
-		return fmt.Errorf("dzfiles: erorr wrong storage provider")
+func initDownloadUploader(dzConf DZFilesConfig) (ImageDownUploader, error) {
+	switch dzConf.Provider {
+	case "azure":
+		source := NewAzureImageSource(nil).(ImageDownUploader)
+		return source, nil
+	case "s3":
+
+	}
+
+	return nil, fmt.Errorf("dzfiles: unknown provider")
+}
+
+type DZFilesConfig struct {
+	Provider string // azure ||  s3
+
+	ImageKey      string `json:"imageKey"`
+	Container     string `json:"container"`
+	TempContainer string `json:"tempContainer"`
+
+	ContainerZone string `json:"containerZone"` // container zone (s3 region)
+
+	// TODO: sas
+}
+
+func UploadDZFiles(dzConf DZFilesConfig) error {
+	downUploader, err := initDownloadUploader(dzConf)
+	if err != nil {
+		return fmt.Errorf("dzfiles: error getting source: %w", err)
 	}
 
 	// TODO: this is just an ugly hack which is terrible, this needs to be solved.
 	go func() (err error) {
-		azureSource := NewAzureImageSource(nil).(ImageDownUploader)
-
-		keyDir, imageName := filepath.Split(imageKey)
+		keyDir, imageName := filepath.Split(dzConf.ImageKey)
 		imageName = imageName[:len(imageName)-len(filepath.Ext(imageName))]
 
 		// TODO: hack to defer error
 		defer func() {
 			if err != nil {
-				azureSource.UploadImage(
+				downUploader.UploadImage(
 					[]byte(err.Error()),
 					filepath.Join(keyDir, imageName+".txt"),
-					container,
+					dzConf.TempContainer,
+					dzConf.ContainerZone,
 				)
 				fmt.Printf("dzfiles: error: %s", err)
 			}
@@ -56,15 +80,16 @@ func UploadDZFiles(storageProvider, container, imageKey string) error {
 		}
 		defer os.RemoveAll(localDirPath)
 
-		if err := azureSource.UploadImage(
+		if err := downUploader.UploadImage(
 			[]byte("pending"),
 			filepath.Join(keyDir, imageName+".txt"),
-			container,
+			dzConf.TempContainer,
+			dzConf.ContainerZone,
 		); err != nil {
 			return fmt.Errorf("dzfiles: error creating txt file: %w", err)
 		}
 
-		data, err := azureSource.DownloadImage(container, imageKey)
+		data, err := downUploader.DownloadImage(dzConf.Container, dzConf.ImageKey, dzConf.ContainerZone)
 		if err != nil {
 			return fmt.Errorf("dzfiles: error downloading image: %w", err)
 		}
@@ -80,10 +105,11 @@ func UploadDZFiles(storageProvider, container, imageKey string) error {
 				return fmt.Errorf("dzfiles: error reading index file: %w", err)
 			}
 
-			if err := azureSource.UploadImage(
+			if err := downUploader.UploadImage(
 				data,
 				filepath.Join(keyDir, imageName+".dzi"),
-				container,
+				dzConf.TempContainer,
+				dzConf.ContainerZone,
 			); err != nil {
 				return fmt.Errorf("dzfiles: error uploading index file: %w", err)
 			}
@@ -109,10 +135,11 @@ func UploadDZFiles(storageProvider, container, imageKey string) error {
 							return fmt.Errorf("dzfiles: error reading file: %s: %w", path, err)
 						}
 
-						if err := azureSource.UploadImage(
+						if err := downUploader.UploadImage(
 							data,
 							keyDir+path[len(localDirPath)+1:], // +1 -> for slash "/",
-							container,
+							dzConf.TempContainer,
+							dzConf.ContainerZone,
 						); err != nil {
 							return fmt.Errorf("dzfiles: error uploading file: %s: %w", path, err)
 						}
@@ -131,10 +158,11 @@ func UploadDZFiles(storageProvider, container, imageKey string) error {
 			return err
 		}
 
-		if err := azureSource.UploadImage(
+		if err := downUploader.UploadImage(
 			[]byte("ok"),
 			filepath.Join(keyDir, imageName+".txt"),
-			container,
+			dzConf.TempContainer,
+			dzConf.ContainerZone,
 		); err != nil {
 			return fmt.Errorf("dzfiles: error creating ok txt file: %s", err)
 		}

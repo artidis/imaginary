@@ -62,6 +62,37 @@ func (s *S3ImageSource) GetImage(req *http.Request) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+func DownloadImage(container, imageKey, zone string) ([]byte, error) {
+	buffer := aws.NewWriteAtBuffer([]byte{})
+	buffer.GrowthCoeff = 1.5
+	if _, err := s3manager.NewDownloader(newS3Session(zone)).
+		Download(
+			buffer,
+			&s3.GetObjectInput{
+				Bucket: aws.String(container),
+				Key:    &imageKey,
+			}); err != nil {
+		return nil, fmt.Errorf("sources3: failed to download image, %w", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func UploadImage(data []byte, fileKey, container, zone string) error {
+	sess := newS3Session(zone)
+	uploader := s3manager.NewUploader(sess)
+
+	if _, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: aws.String(container),
+		Key:    &fileKey,
+		Body:   bytes.NewReader(data),
+	}); err != nil {
+		return fmt.Errorf("failed to upload file, %w", err)
+	}
+
+	return nil
+}
+
 func uploadBufferToS3(buffer []byte, outputKey, bucket, region string) error {
 	sess := newS3Session(region)
 	uploader := s3manager.NewUploader(sess)
