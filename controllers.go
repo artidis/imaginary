@@ -231,9 +231,13 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := struct {
-		StorageProvider string `json:"storageProvider"`
-		Container       string `json:"container"`
-		ImageKey        string `json:"imageKey"`
+		Provider string `json:"provider"` // azure ||  s3
+
+		ImageKey      string `json:"imageKey"`
+		Container     string `json:"container"`
+		TempContainer string `json:"tempContainer"`
+
+		ContainerZone string `json:"containerZone"` // container zone (s3 region)
 	}{}
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -260,7 +264,13 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := UploadDZFiles(req.StorageProvider, req.Container, req.ImageKey); err != nil {
+	if err := UploadDZFiles(DZFilesConfig{
+		Provider:      req.Provider,
+		ImageKey:      req.ImageKey,
+		Container:     req.Container,
+		TempContainer: req.TempContainer,
+		ContainerZone: req.ContainerZone,
+	}); err != nil {
 		ErrorReply(r, w,
 			NewError(
 				fmt.Sprintf("controllers: uploading dz files error: %s", err),

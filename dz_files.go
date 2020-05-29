@@ -41,13 +41,11 @@ func initDownloadUploader(dzConf DZFilesConfig) (ImageDownUploader, error) {
 type DZFilesConfig struct {
 	Provider string // azure ||  s3
 
-	ImageKey      string `json:"imageKey"`
-	Container     string `json:"container"`
-	TempContainer string `json:"tempContainer"`
+	ImageKey      string
+	Container     string
+	TempContainer string
 
-	ContainerZone string `json:"containerZone"` // container zone (s3 region)
-
-	// TODO: sas
+	ContainerZone string // container zone (s3 region)
 }
 
 func UploadDZFiles(dzConf DZFilesConfig) error {
