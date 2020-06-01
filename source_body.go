@@ -20,7 +20,7 @@ func NewBodyImageSource(config *SourceConfig) ImageSource {
 }
 
 func (s *BodyImageSource) Matches(r *http.Request) bool {
-	return r.Method == http.MethodPost || r.Method == http.MethodPut
+	return (r.Method == http.MethodPost || r.Method == http.MethodPut) && !isAzureSASToken(r)
 }
 
 func (s *BodyImageSource) GetImage(r *http.Request) ([]byte, error) {
