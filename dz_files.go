@@ -35,19 +35,27 @@ func initDownloadUploader(dzConf DZFilesConfig) (ImageDownUploader, error) {
 		return &S3Source{
 			Zone: dzConf.ContainerZone,
 		}, nil
+	case "azureSAS":
+		return &AzureSASSource{
+			SASToken:    dzConf.SASToken,
+			AccountName: dzConf.AccountName,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("dzfiles: unknown provider")
 }
 
 type DZFilesConfig struct {
-	Provider string // azure ||  s3
+	Provider string // azure || azureSAS ||  s3
 
 	ImageKey      string
 	Container     string
 	TempContainer string
 
 	ContainerZone string // container zone (s3 region)
+
+	SASToken    string // sas token for azure
+	AccountName string // account name which is used in conjunction with sas token
 }
 
 func UploadDZFiles(dzConf DZFilesConfig) error {
@@ -56,7 +64,8 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 		return fmt.Errorf("dzfiles: error getting source: %w", err)
 	}
 
-	// TODO: this is just an ugly hack which is terrible, this needs to be solved.
+	// TODO: this is just an ugly hack which is terrible, this needs to be solved with
+	// async task.
 	go func() (err error) {
 		keyDir, imageName := filepath.Split(dzConf.ImageKey)
 		imageName = imageName[:len(imageName)-len(filepath.Ext(imageName))]

@@ -232,13 +232,16 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := struct {
-		Provider string `json:"provider"` // azure ||  s3
+		Provider string `json:"provider"` // azure ||  s3 || azureSAS
 
 		ImageKey      string `json:"imageKey"`
 		Container     string `json:"container"`
 		TempContainer string `json:"tempContainer"`
 
 		ContainerZone string `json:"containerZone"` // container zone (s3 region)
+
+		SASToken    string `json:"sasToken"`    // sas token for azure
+		AccountName string `json:"accountName"` // account name which is used in conjunction with sas token
 	}{}
 
 	data, err := ioutil.ReadAll(r.Body)
@@ -271,6 +274,8 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 		Container:     req.Container,
 		TempContainer: req.TempContainer,
 		ContainerZone: req.ContainerZone,
+		SASToken:      req.SASToken,
+		AccountName:   req.AccountName,
 	}); err != nil {
 		ErrorReply(r, w,
 			NewError(
