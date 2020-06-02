@@ -19,17 +19,15 @@ func init() {
 	RegisterSource(ImageSourceTypeS3, NewS3ImageSource)
 }
 
-func newS3Session(region string) *session.Session {
-	// TODO: if we are ever to migrate to azure this should be made that is fails silently
-	// not with panic
-	return session.Must(session.NewSession(&aws.Config{
+func newS3Session(region string) (*session.Session, error) {
+	return session.NewSession(&aws.Config{
 		Region: &region,
 		Credentials: credentials.NewStaticCredentials(
 			os.Getenv("S3_KEY"),
 			os.Getenv("S3_KEY_SECRET"),
 			"",
 		),
-	}))
+	})
 }
 
 type S3ImageSource struct {
@@ -47,9 +45,14 @@ func (s *S3ImageSource) Matches(r *http.Request) bool {
 func (s *S3ImageSource) GetImage(req *http.Request) ([]byte, error) {
 	key, bucket, region := parseS3Key(req), parseS3Bucket(req), parseS3Region(req)
 
+	session, err := newS3Session(region)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create s3 session: %w", err)
+	}
+
 	buffer := aws.NewWriteAtBuffer([]byte{})
 	buffer.GrowthCoeff = 1.5
-	if _, err := s3manager.NewDownloader(newS3Session(region)).
+	if _, err := s3manager.NewDownloader(session).
 		Download(
 			buffer,
 			&s3.GetObjectInput{
@@ -63,14 +66,17 @@ func (s *S3ImageSource) GetImage(req *http.Request) ([]byte, error) {
 }
 
 func uploadBufferToS3(buffer []byte, outputKey, bucket, region string) error {
-	sess := newS3Session(region)
-	uploader := s3manager.NewUploader(sess)
+	sess, err := newS3Session(region)
+	if err != nil {
+		return fmt.Errorf("failed to create s3 session: %w", err)
+	}
 
-	if _, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(bucket),
-		Key:    &outputKey,
-		Body:   bytes.NewReader(buffer),
-	}); err != nil {
+	if _, err := s3manager.NewUploader(sess).
+		Upload(&s3manager.UploadInput{
+			Bucket: aws.String(bucket),
+			Key:    &outputKey,
+			Body:   bytes.NewReader(buffer),
+		}); err != nil {
 		return fmt.Errorf("failed to upload file, %w", err)
 	}
 
@@ -98,9 +104,14 @@ type S3Source struct {
 }
 
 func (s *S3Source) DownloadImage(container, imageKey string) ([]byte, error) {
+	session, err := newS3Session(s.Zone)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create s3 session: %w", err)
+	}
+
 	buffer := aws.NewWriteAtBuffer([]byte{})
 	buffer.GrowthCoeff = 1.5
-	if _, err := s3manager.NewDownloader(newS3Session(s.Zone)).
+	if _, err := s3manager.NewDownloader(session).
 		Download(
 			buffer,
 			&s3.GetObjectInput{
@@ -114,14 +125,17 @@ func (s *S3Source) DownloadImage(container, imageKey string) ([]byte, error) {
 }
 
 func (s *S3Source) UploadImage(data []byte, fileKey, container string) error {
-	sess := newS3Session(s.Zone)
-	uploader := s3manager.NewUploader(sess)
+	sess, err := newS3Session(s.Zone)
+	if err != nil {
+		return fmt.Errorf("failed to create s3 session: %w", err)
+	}
 
-	if _, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(container),
-		Key:    &fileKey,
-		Body:   bytes.NewReader(data),
-	}); err != nil {
+	if _, err := s3manager.NewUploader(sess).
+		Upload(&s3manager.UploadInput{
+			Bucket: aws.String(container),
+			Key:    &fileKey,
+			Body:   bytes.NewReader(data),
+		}); err != nil {
 		return fmt.Errorf("failed to upload file, %w", err)
 	}
 
