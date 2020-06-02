@@ -22,8 +22,8 @@ func init() {
 }
 
 type ImageDownUploader interface {
-	DownloadImage(container, imageKey, zone string) ([]byte, error)
-	UploadImage(data []byte, fileKey, container, zone string) error
+	DownloadImage(container, imageKey string) ([]byte, error)
+	UploadImage(data []byte, fileKey, container string) error
 }
 
 func initDownloadUploader(dzConf DZFilesConfig) (ImageDownUploader, error) {
@@ -32,7 +32,9 @@ func initDownloadUploader(dzConf DZFilesConfig) (ImageDownUploader, error) {
 		source := NewAzureImageSource(nil).(ImageDownUploader)
 		return source, nil
 	case "s3":
-
+		return &S3Source{
+			Zone: dzConf.ContainerZone,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("dzfiles: unknown provider")
@@ -66,7 +68,6 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 					[]byte(err.Error()),
 					filepath.Join(keyDir, imageName+".txt"),
 					dzConf.TempContainer,
-					dzConf.ContainerZone,
 				)
 				fmt.Printf("dzfiles: error: %s", err)
 			}
@@ -82,12 +83,11 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 			[]byte("pending"),
 			filepath.Join(keyDir, imageName+".txt"),
 			dzConf.TempContainer,
-			dzConf.ContainerZone,
 		); err != nil {
 			return fmt.Errorf("dzfiles: error creating txt file: %w", err)
 		}
 
-		data, err := downUploader.DownloadImage(dzConf.Container, dzConf.ImageKey, dzConf.ContainerZone)
+		data, err := downUploader.DownloadImage(dzConf.Container, dzConf.ImageKey)
 		if err != nil {
 			return fmt.Errorf("dzfiles: error downloading image: %w", err)
 		}
@@ -107,7 +107,6 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 				data,
 				filepath.Join(keyDir, imageName+".dzi"),
 				dzConf.TempContainer,
-				dzConf.ContainerZone,
 			); err != nil {
 				return fmt.Errorf("dzfiles: error uploading index file: %w", err)
 			}
@@ -137,7 +136,6 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 							data,
 							keyDir+path[len(localDirPath)+1:], // +1 -> for slash "/",
 							dzConf.TempContainer,
-							dzConf.ContainerZone,
 						); err != nil {
 							return fmt.Errorf("dzfiles: error uploading file: %s: %w", path, err)
 						}
@@ -160,7 +158,6 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 			[]byte("ok"),
 			filepath.Join(keyDir, imageName+".txt"),
 			dzConf.TempContainer,
-			dzConf.ContainerZone,
 		); err != nil {
 			return fmt.Errorf("dzfiles: error creating ok txt file: %s", err)
 		}
