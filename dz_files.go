@@ -12,10 +12,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	AzureProvider string = "azure"
-)
-
 func init() {
 	// TODO: since we are using rand, we need this seed somewhere better
 	rand.Seed(time.Now().UnixNano())

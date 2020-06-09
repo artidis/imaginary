@@ -93,12 +93,10 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		}
 	}
 
-	// Finally check if image MIME type is supported
-	// NOTE: we are using post requests as the way to read the data so this is useless for us.
-	// if !IsImageMimeTypeSupported(mimeType) {
-	// 	ErrorReply(r, w, ErrUnsupportedMedia, o)
-	// 	return
-	// }
+	if !IsImageMimeTypeSupported(mimeType) {
+		ErrorReply(r, w, ErrUnsupportedMedia, o)
+		return
+	}
 
 	opts, err := buildParamsFromQuery(r.URL.Query())
 	if err != nil {
@@ -140,7 +138,9 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if len(parseAzureBlobKey(r)) != 0 {
+	}
+
+	if len(parseAzureBlobKey(r)) != 0 {
 		if err := uploadBufferToAzure(
 			image.Body,
 			parseAzureBlobOutputKey(r),
@@ -158,7 +158,9 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if isAzureSASToken(r) {
+	}
+
+	if isAzureSASToken(r) {
 		if err := uploadBufferToAzureSAS(image.Body, r); err != nil {
 			ErrorReply(
 				r, w,
