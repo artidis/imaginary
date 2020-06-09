@@ -64,12 +64,19 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 		return fmt.Errorf("dzfiles: error getting source: %w", err)
 	}
 
+	keyDir, imageName := filepath.Split(dzConf.ImageKey)
+	imageName = imageName[:len(imageName)-len(filepath.Ext(imageName))]
+	if err := downUploader.UploadImage(
+		[]byte("pending"),
+		filepath.Join(keyDir, imageName+".txt"),
+		dzConf.TempContainer,
+	); err != nil {
+		return fmt.Errorf("dzfiles: error creating txt file: %w", err)
+	}
+
 	// TODO: this is just an ugly hack which is terrible, this needs to be solved with
 	// async task.
 	go func() (err error) {
-		keyDir, imageName := filepath.Split(dzConf.ImageKey)
-		imageName = imageName[:len(imageName)-len(filepath.Ext(imageName))]
-
 		// TODO: hack to defer error
 		defer func() {
 			if err != nil {
@@ -87,14 +94,6 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 			return fmt.Errorf("dzfiles: error creating tmp dir: %w", err)
 		}
 		defer os.RemoveAll(localDirPath)
-
-		if err := downUploader.UploadImage(
-			[]byte("pending"),
-			filepath.Join(keyDir, imageName+".txt"),
-			dzConf.TempContainer,
-		); err != nil {
-			return fmt.Errorf("dzfiles: error creating txt file: %w", err)
-		}
 
 		data, err := downUploader.DownloadImage(dzConf.Container, dzConf.ImageKey)
 		if err != nil {
@@ -170,6 +169,8 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 		); err != nil {
 			return fmt.Errorf("dzfiles: error creating ok txt file: %s", err)
 		}
+
+		fmt.Printf("DZfiles upload for: %s\n", filepath.Join(keyDir, imageName))
 
 		return nil
 	}()
