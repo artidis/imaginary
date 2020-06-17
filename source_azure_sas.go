@@ -43,15 +43,9 @@ type AzureSasRequest struct {
 }
 
 func (s *AzureSASImageSource) GetImage(r *http.Request) ([]byte, error) {
-	d, err := ioutil.ReadAll(r.Body)
+	azureRequest, err := parseAzureSasTokenFromRequest(r)
 	if err != nil {
-		return nil, fmt.Errorf("azure_sas: error reading body: %w", err)
-	}
-	defer r.Body.Close()
-
-	var azureRequest AzureSasRequest
-	if err := json.Unmarshal(d, &azureRequest); err != nil {
-		return nil, fmt.Errorf("azure_sas: error parsing request to json: %w", err)
+		return nil, fmt.Errorf("azure_sas: error parsing azure sas token from request: %w", err)
 	}
 
 	url, err := assebleBlobURL(
@@ -85,21 +79,28 @@ func (s *AzureSASImageSource) GetImage(r *http.Request) ([]byte, error) {
 		return nil, fmt.Errorf("azure_sas: error reading data: %w", err)
 	}
 
-	// Injecting the old body so that we can read it twice...
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(d))
 	return data.Bytes(), nil
 }
 
-func uploadBufferToAzureSAS(data []byte, r *http.Request) error {
-	d, err := ioutil.ReadAll(r.Body)
+func parseAzureSasTokenFromRequest(r *http.Request) (azureRequest AzureSasRequest, err error) {
+	var d []byte
+	d, err = ioutil.ReadAll(r.Body)
 	if err != nil {
-		return fmt.Errorf("azure_sas: error reading body: %w", err)
+		return
 	}
 	defer r.Body.Close()
 
-	var azureRequest AzureSasRequest
-	if err := json.Unmarshal(d, &azureRequest); err != nil {
-		return fmt.Errorf("azure_sas: error parsing request to json: %w", err)
+	err = json.Unmarshal(d, &azureRequest)
+
+	// Injecting the data again so that it can be read again
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(d))
+	return
+}
+
+func uploadBufferToAzureSAS(data []byte, r *http.Request) error {
+	azureRequest, err := parseAzureSasTokenFromRequest(r)
+	if err != nil {
+		return fmt.Errorf("azure_sas: error parsing azure sas token from request: %w", err)
 	}
 
 	url, err := assebleBlobURL(
