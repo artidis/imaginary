@@ -82,7 +82,7 @@ func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-func (s *AzureImageSource) DownloadImage(container, key, _ string) ([]byte, error) {
+func (s *AzureImageSource) DownloadImage(container, key string) ([]byte, error) {
 	session, err := newAzureSession(container)
 	if err != nil {
 		return nil, fmt.Errorf("azure: error getting azure session: %w", err)
@@ -105,7 +105,7 @@ func (s *AzureImageSource) DownloadImage(container, key, _ string) ([]byte, erro
 	return data.Bytes(), nil
 }
 
-func (s *AzureImageSource) UploadImage(data []byte, fileKey, container, _ string) error {
+func (s *AzureImageSource) UploadImage(data []byte, fileKey, container string) error {
 	session, err := newAzureSession(container)
 	if err != nil {
 		return fmt.Errorf("azure: error getting azure session: %w", err)
