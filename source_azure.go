@@ -82,6 +82,7 @@ func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {
 	return data.Bytes(), nil
 }
 
+
 func (s *AzureImageSource) DownloadImage(container, key, _ string) ([]byte, error) {
 	session, err := newAzureSession(container)
 	if err != nil {
@@ -104,6 +105,7 @@ func (s *AzureImageSource) DownloadImage(container, key, _ string) ([]byte, erro
 
 	return data.Bytes(), nil
 }
+
 
 func (s *AzureImageSource) UploadImage(data []byte, fileKey, container, _ string) error {
 	session, err := newAzureSession(container)
