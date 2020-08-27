@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"strconv"
@@ -92,7 +93,6 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		}
 	}
 
-	// Finally check if image MIME type is supported
 	if !IsImageMimeTypeSupported(mimeType) {
 		ErrorReply(r, w, ErrUnsupportedMedia, o)
 		return
@@ -138,7 +138,9 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if len(parseAzureBlobKey(r)) != 0 {
+	}
+
+	if len(parseAzureBlobKey(r)) != 0 {
 		if err := uploadBufferToAzure(
 			image.Body,
 			parseAzureBlobOutputKey(r),
@@ -156,8 +158,10 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if url := parseAzureSASBlobURL(r); len(url) != 0 {
-		if err := uploadBufferToAzureSAS(image.Body, url); err != nil {
+	}
+
+	if isAzureSASToken(r) {
+		if err := uploadBufferToAzureSAS(image.Body, r); err != nil {
 			ErrorReply(
 				r, w,
 				NewError(
@@ -221,4 +225,72 @@ func formController(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	_, _ = w.Write([]byte(html))
+}
+
+func DZSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		ErrorReply(r, w, ErrMethodNotAllowed, ServerOptions{})
+		return
+	}
+
+	req := struct {
+		Provider string `json:"provider"` // azure ||  s3 || azureSAS
+
+		ImageKey      string `json:"imageKey"`
+		Container     string `json:"container"`
+		TempContainer string `json:"tempContainer"`
+
+		ContainerZone string `json:"containerZone"` // container zone (s3 region)
+
+		SASToken    string `json:"sasToken"`    // sas token for azure
+		AccountName string `json:"accountName"` // account name which is used in conjunction with sas token
+	}{}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: reading body failed: %s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := json.Unmarshal(data, &req); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: error unmarshalling data :%s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
+	if req.TempContainer == "" {
+		req.TempContainer = req.Container
+	}
+
+	if err := UploadDZFiles(DZFilesConfig{
+		Provider:      req.Provider,
+		ImageKey:      req.ImageKey,
+		Container:     req.Container,
+		TempContainer: req.TempContainer,
+		ContainerZone: req.ContainerZone,
+		SASToken:      req.SASToken,
+		AccountName:   req.AccountName,
+	}); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: uploading dz files error: %s", err),
+				InternalError,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
 }

@@ -34,7 +34,11 @@ func newAzureSession(container string) (*azblob.ContainerURL, error) {
 
 	accountName := os.Getenv("AZURE_ACCOUNT_NAME")
 
-	p := azblob.NewPipeline(*credential, azblob.PipelineOptions{})
+	p := azblob.NewPipeline(*credential, azblob.PipelineOptions{
+		Retry: azblob.RetryOptions{
+			TryTimeout: 1 * time.Hour,
+		},
+	})
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", accountName))
 	containerURL := azblob.NewServiceURL(*u, p).NewContainerURL(container)
 
@@ -76,6 +80,50 @@ func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {
 	}
 
 	return data.Bytes(), nil
+}
+
+func (s *AzureImageSource) DownloadImage(container, key, _ string) ([]byte, error) {
+	session, err := newAzureSession(container)
+	if err != nil {
+		return nil, fmt.Errorf("azure: error getting azure session: %w", err)
+	}
+
+	dlResp, err := session.NewBlobURL(key).
+		Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false)
+	if err != nil {
+		return nil, fmt.Errorf("azure: error downloading blob: %w", err)
+	}
+
+	data := &bytes.Buffer{}
+	bodyData := dlResp.Body(azblob.RetryReaderOptions{})
+	defer bodyData.Close()
+
+	if _, err := data.ReadFrom(bodyData); err != nil {
+		return nil, fmt.Errorf("azure: error reading data: %w", err)
+	}
+
+	return data.Bytes(), nil
+}
+
+func (s *AzureImageSource) UploadImage(data []byte, fileKey, container, _ string) error {
+	session, err := newAzureSession(container)
+	if err != nil {
+		return fmt.Errorf("azure: error getting azure session: %w", err)
+	}
+
+	if _, err := session.
+		NewBlockBlobURL(fileKey).
+		Upload(
+			context.Background(),
+			bytes.NewReader(data),
+			azblob.BlobHTTPHeaders{},
+			azblob.Metadata{},
+			azblob.BlobAccessConditions{},
+		); err != nil {
+		return fmt.Errorf("azure: uploading image failed: %w", err)
+	}
+
+	return nil
 }
 
 func uploadBufferToAzure(data []byte, outputBlobKey, container string) error {
