@@ -294,6 +294,10 @@ func DZSave(w http.ResponseWriter, r *http.Request) {
 		req.TempContainer = req.Container
 	}
 
+	if req.Provider == "" {
+		req.Provider = "azure"
+	}
+
 	if err := UploadDZFiles(DZFilesConfig{
 		Provider:      req.Provider,
 		ImageKey:      req.ImageKey,

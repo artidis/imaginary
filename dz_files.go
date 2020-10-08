@@ -17,6 +17,13 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+// Make sure that all implementations implement ImageDownUploader
+var (
+	_ ImageDownUploader = (*AzureSASSource)(nil)
+	_ ImageDownUploader = (*AzureImageSource)(nil)
+	_ ImageDownUploader = (*S3Source)(nil)
+)
+
 type ImageDownUploader interface {
 	DownloadImage(container, imageKey string) ([]byte, error)
 	UploadImage(data []byte, fileKey, container string) error
