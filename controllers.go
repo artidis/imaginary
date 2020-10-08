@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -138,7 +140,9 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if len(parseAzureBlobKey(r)) != 0 {
+	}
+
+	if parseAzureSASToken(r) == "" && len(parseAzureBlobKey(r)) != 0 {
 		if err := uploadBufferToAzure(
 			image.Body,
 			parseAzureBlobOutputKey(r),
@@ -156,8 +160,28 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if url := parseAzureSASBlobURL(r); len(url) != 0 {
-		if err := uploadBufferToAzureSAS(image.Body, url); err != nil {
+	} else if sasToken := parseAzureSASToken(r); len(sasToken) != 0 {
+		url, err := assebleBlobURL(
+			sasToken,
+			os.Getenv("AZURE_ACCOUNT_NAME"),
+			parseAzureContainer(r),
+			parseAzureBlobOutputKey(r),
+		)
+		if err != nil {
+			ErrorReply(
+				r, w,
+				NewError(
+					fmt.Sprintf("Error while assembling azure url: %s", err),
+					InternalError,
+				), o,
+			)
+			return
+		}
+
+		if err := uploadBufferToAzureSAS(
+			image.Body,
+			url,
+		); err != nil {
 			ErrorReply(
 				r, w,
 				NewError(
@@ -221,4 +245,76 @@ func formController(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	_, _ = w.Write([]byte(html))
+}
+
+func DZSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		ErrorReply(r, w, ErrMethodNotAllowed, ServerOptions{})
+		return
+	}
+
+	req := struct {
+		Provider string `json:"provider"` // azure ||  s3 || azureSAS
+
+		ImageKey      string `json:"imageKey"`
+		Container     string `json:"container"`
+		TempContainer string `json:"tempContainer"`
+
+		ContainerZone string `json:"containerZone"` // container zone (s3 region)
+
+		SASToken    string `json:"sasToken"`    // sas token for azure
+		AccountName string `json:"accountName"` // account name which is used in conjunction with sas token
+	}{}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: reading body failed: %s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+	defer r.Body.Close()
+
+	if err := json.Unmarshal(data, &req); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: error unmarshalling data :%s", err),
+				NotAcceptable,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
+	if req.TempContainer == "" {
+		req.TempContainer = req.Container
+	}
+
+	if req.Provider == "" {
+		req.Provider = "azure"
+	}
+
+	if err := UploadDZFiles(DZFilesConfig{
+		Provider:      req.Provider,
+		ImageKey:      req.ImageKey,
+		Container:     req.Container,
+		TempContainer: req.TempContainer,
+		ContainerZone: req.ContainerZone,
+		SASToken:      req.SASToken,
+		AccountName:   req.AccountName,
+	}); err != nil {
+		ErrorReply(r, w,
+			NewError(
+				fmt.Sprintf("controllers: uploading dz files error: %s", err),
+				InternalError,
+			),
+			ServerOptions{},
+		)
+		return
+	}
+
 }

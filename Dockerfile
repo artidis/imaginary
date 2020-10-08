@@ -73,6 +73,7 @@ LABEL maintainer="tomas@aparicio.me" \
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /go/bin/imaginary /usr/local/bin/imaginary
 COPY --from=builder /etc/ssl/certs /etc/ssl/certs
+COPY --from=builder /usr/local/bin/vips /usr/local/bin/vips
 
 # Install runtime dependencies
 RUN DEBIAN_FRONTEND=noninteractive \

@@ -25,10 +25,19 @@ func Middleware(fn func(http.ResponseWriter, *http.Request), o ServerOptions) ht
 		next = throttle(next, o)
 	}
 	if o.CORS {
-		next = cors.New(cors.Options{
-			AllowedOrigins:   o.CORSURLs,
-			AllowCredentials: true,
-		}).Handler(next)
+		next = cors.AllowAll().Handler(next)
+		// next = cors.New(cors.Options{
+		// 	AllowedOrigins: o.CORSURLs,
+		// 	AllowedMethods: []string{
+		// 		http.MethodPost,
+		// 		http.MethodGet,
+		// 		http.MethodOptions,
+		// 		http.MethodHead,
+		// 	},
+		// 	AllowedHeaders:   []string{"*"},
+		// 	AllowCredentials: true,
+		// 	Debug:            true,
+		// }).Handler(next)
 	}
 	if o.APIKey != "" {
 		next = authorizeClient(next, o)
@@ -37,7 +46,7 @@ func Middleware(fn func(http.ResponseWriter, *http.Request), o ServerOptions) ht
 		next = setCacheHeaders(next, o.HTTPCacheTTL)
 	}
 
-	return validate(defaultHeaders(next), o)
+	return defaultHeaders(next)
 }
 
 func ImageMiddleware(o ServerOptions) func(Operation) http.Handler {
@@ -86,17 +95,6 @@ func throttle(next http.Handler, o ServerOptions) http.Handler {
 	}
 
 	return httpRateLimiter.RateLimit(next)
-}
-
-func validate(next http.Handler, o ServerOptions) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodPost {
-			ErrorReply(r, w, ErrMethodNotAllowed, o)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 func validateImage(next http.Handler, o ServerOptions) http.Handler {
