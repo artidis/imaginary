@@ -54,7 +54,7 @@ func NewAzureImageSource(config *SourceConfig) ImageSource {
 }
 
 func (s *AzureImageSource) Matches(r *http.Request) bool {
-	return r.Method == http.MethodGet && parseAzureBlobKey(r) != ""
+	return r.Method == http.MethodGet && (parseAzureSASToken(r) == "" && parseAzureBlobKey(r) != "")
 }
 
 func (s *AzureImageSource) GetImage(r *http.Request) ([]byte, error) {

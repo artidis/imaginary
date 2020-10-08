@@ -3,7 +3,7 @@ module github.com/h2non/imaginary
 go 1.12
 
 require (
-	github.com/Azure/azure-storage-blob-go v0.8.0
+	github.com/Azure/azure-storage-blob-go v0.10.0
 	github.com/Azure/go-autorest/autorest v0.10.0
 	github.com/Azure/go-autorest/autorest/adal v0.8.3
 	github.com/aws/aws-sdk-go v1.30.7

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -141,7 +142,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		return
 	}
 
-	if len(parseAzureBlobKey(r)) != 0 {
+	if parseAzureSASToken(r) == "" && len(parseAzureBlobKey(r)) != 0 {
 		if err := uploadBufferToAzure(
 			image.Body,
 			parseAzureBlobOutputKey(r),
@@ -159,8 +160,28 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 
 		w.WriteHeader(http.StatusOK)
 		return
-	} else if url := parseAzureSASBlobURL(r); len(url) != 0 {
-		if err := uploadBufferToAzureSAS(image.Body, url); err != nil {
+	} else if sasToken := parseAzureSASToken(r); len(sasToken) != 0 {
+		url, err := assebleBlobURL(
+			sasToken,
+			os.Getenv("AZURE_ACCOUNT_NAME"),
+			parseAzureContainer(r),
+			parseAzureBlobOutputKey(r),
+		)
+		if err != nil {
+			ErrorReply(
+				r, w,
+				NewError(
+					fmt.Sprintf("Error while assembling azure url: %s", err),
+					InternalError,
+				), o,
+			)
+			return
+		}
+
+		if err := uploadBufferToAzureSAS(
+			image.Body,
+			url,
+		); err != nil {
 			ErrorReply(
 				r, w,
 				NewError(
