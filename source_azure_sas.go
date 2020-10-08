@@ -43,7 +43,6 @@ type AzureSasRequest struct {
 }
 
 func (s *AzureSASImageSource) GetImage(r *http.Request) ([]byte, error) {
-
 	d, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, fmt.Errorf("azure_sas: error reading body: %w", err)
@@ -90,7 +89,6 @@ func (s *AzureSASImageSource) GetImage(r *http.Request) ([]byte, error) {
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(d))
 	return data.Bytes(), nil
 }
-
 
 func uploadBufferToAzureSAS(data []byte, r *http.Request) error {
 	d, err := ioutil.ReadAll(r.Body)
