@@ -75,6 +75,7 @@ func determineAcceptMimeType(accept string) string {
 	return ""
 }
 
+//nolint:gocyclo
 func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation Operation, o ServerOptions) {
 	// Infer the body MIME type via mime sniff algorithm
 	mimeType := http.DetectContentType(buf)
