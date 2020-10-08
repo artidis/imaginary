@@ -11,7 +11,6 @@ import (
 type ImageOptions struct {
 	IsDefinedField
 
-	WatermarkSVG  []byte
 	Width         int
 	Height        int
 	AreaWidth     int

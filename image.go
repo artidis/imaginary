@@ -300,16 +300,6 @@ func Watermark(buf []byte, o ImageOptions) (Image, error) {
 	return Process(buf, opts)
 }
 
-func WatermarkImageSVG(buf []byte, o ImageOptions) (Image, error) {
-	opts := BimgOptions(o)
-	opts.WatermarkImage.Left = o.Left
-	opts.WatermarkImage.Top = o.Top
-	opts.WatermarkImage.Buf = o.WatermarkSVG
-	opts.WatermarkImage.Opacity = o.Opacity
-
-	return Process(buf, opts)
-}
-
 func WatermarkImage(buf []byte, o ImageOptions) (Image, error) {
 	if o.Image == "" {
 		return Image{}, NewError("Missing required param: image", BadRequest)
