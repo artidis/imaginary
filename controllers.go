@@ -116,6 +116,39 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 		return
 	}
 
+	if r.URL.Path == "/watermarkimagesvg" {
+		var data []byte
+		var err error
+
+		if len(parseS3Key(r)) != 0 {
+			s := S3Source{
+				Zone: parseS3Region(r),
+			}
+			data, err = s.DownloadImage(parseS3Bucket(r), opts.Image)
+		}
+
+		if len(parseAzureBlobKey(r)) != 0 {
+			s := NewAzureImageSource(nil).(ImageDownUploader)
+			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
+		}
+
+		if parseAzureSASToken(r) == "" && len(parseAzureBlobKey(r)) != 0 {
+			s := &AzureSASSource{
+				SASToken:    parseAzureSASToken(r),
+				AccountName: os.Getenv("AZURE_ACCOUNT_NAME"),
+			}
+
+			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
+		}
+
+		if err != nil {
+			ErrorReply(r, w, NewError("Error while downloading svg: "+err.Error(), BadRequest), o)
+			return
+		}
+
+		opts.WatermarkSVG = data
+	}
+
 	image, err := operation.Run(buf, opts)
 	if err != nil {
 		ErrorReply(r, w, NewError("Error while processing the image: "+err.Error(), BadRequest), o)
