@@ -124,7 +124,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 			s := S3Source{
 				Zone: parseS3Region(r),
 			}
-			data, err = s.DownloadImage(parseS3Region(r), opts.Image)
+			data, err = s.DownloadImage(parseS3Bucket(r), opts.Image)
 		}
 
 		if len(parseAzureBlobKey(r)) != 0 {
@@ -132,19 +132,13 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
 		}
 
-		if isAzureSASToken(r) {
-			sasReq, err := parseAzureSasTokenFromRequest(r)
-			if err != nil {
-				ErrorReply(r, w, NewError("Error parsing azure sas req: "+err.Error(), BadRequest), o)
-				return
-			}
-
+		if parseAzureSASToken(r) == "" && len(parseAzureBlobKey(r)) != 0 {
 			s := &AzureSASSource{
-				SASToken:    sasReq.SASToken,
-				AccountName: sasReq.AccountName,
+				SASToken:    parseAzureSASToken(r),
+				AccountName: os.Getenv("AZURE_ACCOUNT_NAME"),
 			}
 
-			data, err = s.DownloadImage(sasReq.Container, opts.Image)
+			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
 		}
 
 		if err != nil {
