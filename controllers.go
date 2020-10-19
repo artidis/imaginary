@@ -125,19 +125,15 @@ func imageHandler(w http.ResponseWriter, r *http.Request, buf []byte, operation 
 				Zone: parseS3Region(r),
 			}
 			data, err = s.DownloadImage(parseS3Bucket(r), opts.Image)
-		}
-
-		if len(parseAzureBlobKey(r)) != 0 {
-			s := NewAzureImageSource(nil).(ImageDownUploader)
-			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
-		}
-
-		if parseAzureSASToken(r) == "" && len(parseAzureBlobKey(r)) != 0 {
+		} else if parseAzureSASToken(r) != "" && len(parseAzureBlobKey(r)) != 0 {
 			s := &AzureSASSource{
 				SASToken:    parseAzureSASToken(r),
 				AccountName: os.Getenv("AZURE_ACCOUNT_NAME"),
 			}
 
+			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
+		} else if len(parseAzureBlobKey(r)) != 0 {
+			s := NewAzureImageSource(nil).(ImageDownUploader)
 			data, err = s.DownloadImage(parseAzureContainer(r), opts.Image)
 		}
 
