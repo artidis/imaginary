@@ -68,7 +68,8 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 	}
 
 	keyDir, imageName := filepath.Split(dzConf.ImageKey)
-	imageName = imageName[:len(imageName)-len(filepath.Ext(imageName))]
+	fileExtension := filepath.Ext(imageName)
+	imageName = imageName[:len(imageName)-len(fileExtension)]
 	if err := downUploader.UploadImage(
 		[]byte("pending"),
 		filepath.Join(keyDir, imageName+".txt"),
@@ -103,7 +104,7 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 			return fmt.Errorf("dzfiles: error downloading image: %w", err)
 		}
 
-		if err := generateDZFiles(localDirPath, data, imageName); err != nil {
+		if err := generateDZFiles(localDirPath, data, imageName, fileExtension); err != nil {
 			return fmt.Errorf("dzfiles: error generating dz files: %w", err)
 		}
 
@@ -183,10 +184,10 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 
 // generateDZFiles generates dz files in given dir with same image name, just changed
 // extension.
-func generateDZFiles(dirPath string, data []byte, imageName string) error {
+func generateDZFiles(dirPath string, data []byte, imageName string, fileExtension string,) error {
 	imagePath := fmt.Sprintf("%s/%s", dirPath, imageName)
 
-	tiffImagePath := imagePath + ".tiff"
+	tiffImagePath := imagePath + fileExtension
 	if err := ioutil.WriteFile(tiffImagePath, data, 0777); err != nil {
 		return fmt.Errorf("dzfiles: error saving tiff image to disk: %w", err)
 	}
