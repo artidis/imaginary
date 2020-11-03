@@ -1,0 +1,56 @@
+#
+# Note: make sure the '$GIT_BRANCH' variable is exported from the build action
+#   The git clone from the AWS checkout doesn't belong to a branch.
+#   You need to export the branch name in the pipeline:
+#     Build / Environment variables
+#       Name: GIT_BRANCH, Value: #{SourceVariables.BranchName}, Type: Plaintext
+#
+
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_NAME: "421016705922.dkr.ecr.eu-central-1.amazonaws.com/imaginary"
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+
+  pre_build:
+    commands:
+
+      - export GIT_REPO_NAME="$(basename $(git rev-parse --show-toplevel))"
+
+      - export GIT_COMMIT_HASH="$(git show --no-patch --format=%H)"
+      - export GIT_COMMIT_HASH_SHORT="$(git show --no-patch --format=%h)"
+
+      - export GIT_AUTHOR_NAME="$(git show --no-patch --format=%an)"
+      - export GIT_AUTHOR_DATE="$(git show --no-patch --format=%ad)"
+
+      - export GIT_COMMITTER_NAME="$(git show --no-patch --format=%cn)"
+      - export GIT_COMMITTER_DATE="$(git show --no-patch --format=%cd)"
+
+      - export GIT_MSG="$(git show  --no-patch --format=%B)"
+      - export GIT_MSG_SUBJECT="$(git show  --no-patch --format=%s)"
+      - export GIT_MSG_BODY="$(git show  --no-patch --format=%b)"
+
+      - export GIT_TIMESTAMP="$(git show  --no-patch --format=%ad --date=format:'%Y-%m-%dT%H-%M-%S')"
+
+      - env | grep "^GIT_"
+
+      # docker tag
+      - export TAG="${GIT_REPO_NAME}.${GIT_BRANCH}.${GIT_TIMESTAMP}.${GIT_COMMIT_HASH_SHORT}"
+
+      - echo "Logging in to Amazon ECR..."
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+
+  build:
+    commands:
+      - "echo Building the Docker image with tag: ${TAG}"
+      - docker build -t ${ECR_REPO_NAME}:${TAG} .
+
+  post_build:
+    commands:
+      - echo "Pushing the Docker image"
+      - docker push ${ECR_REPO_NAME}:${TAG}
