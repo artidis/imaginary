@@ -1,9 +1,9 @@
 #
-# Note: make sure the '$GIT_BRANCH' variable is exported from the build action
-#   The git clone from the AWS checkout doesn't belong to a branch.
-#   You need to export the branch name in the pipeline:
-#     Build / Environment variables
-#       Name: GIT_BRANCH, Value: #{SourceVariables.BranchName}, Type: Plaintext
+# Expected environment variables:
+#   - GIT_BRANCH
+#   - EA_ACCESS_TOKEN
+#   - ACR_APP_ID
+#   - ACR_PASSWD
 #
 
 version: 0.2
@@ -11,6 +11,7 @@ version: 0.2
 env:
   variables:
     ECR_REPO_NAME: "421016705922.dkr.ecr.eu-central-1.amazonaws.com/imaginary"
+    ACR_REPO_NAME: "imaginary.azurecr.io/imaginary"
 
 phases:
   install:
@@ -42,15 +43,34 @@ phases:
       # docker tag
       - export TAG="${GIT_REPO_NAME}.${GIT_BRANCH}.${GIT_TIMESTAMP}.${GIT_COMMIT_HASH_SHORT}"
 
-      - echo "Logging in to Amazon ECR..."
-      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
 
   build:
     commands:
-      - "echo Building the Docker image with tag: ${TAG}"
-      - docker build -t ${ECR_REPO_NAME}:${TAG} .
+      - "echo Building the Docker image"
+      - docker build -t ${GIT_REPO_NAME} .
 
   post_build:
     commands:
-      - echo "Pushing the Docker image"
-      - docker push ${ECR_REPO_NAME}:${TAG}
+
+      - echo "Logging / push to Amazon ECR..."
+      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - export ECR_IMAGE=${ECR_REPO_NAME}:${TAG}
+      - docker tag ${GIT_REPO_NAME} ${ECR_IMAGE}
+      - docker push ${ECR_IMAGE}
+
+
+      - echo "Login / push to Azure ACR..."
+      - docker login ${ACR_REPO_NAME} -u ${ACR_APP_ID} -p ${ACR_PASSWD}
+      - export ACR_IMAGE=${ACR_REPO_NAME}:${TAG}
+      - docker tag ${GIT_REPO_NAME} ${ACR_IMAGE}
+      - docker push ${ACR_IMAGE}
+
+
+      - echo "Notify estudy-admin"
+      - |
+        curl --location \
+             --request POST \
+             https://admin.estudy.artidis.com/update/pipelines \
+             --header "Authorization: Bearer $EA_ACCESS_TOKEN" \
+             --header "Content-Type: application/json" \
+             --data-raw "{\"image\": \"${ECR_IMAGE}\", \"commitHash\": \"${GIT_COMMIT_HASH}\" }"
