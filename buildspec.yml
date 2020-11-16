@@ -73,4 +73,4 @@ phases:
              https://admin.estudy.artidis.com/update/pipelines \
              --header "Authorization: Bearer $EA_ACCESS_TOKEN" \
              --header "Content-Type: application/json" \
-             --data-raw "{\"image\": \"${ECR_IMAGE}\", \"commitHash\": \"${GIT_COMMIT_HASH}\" }"
+             --data-raw "{\"image\": \"${GIT_REPO_NAME}:${TAG}\", \"commitHash\": \"${GIT_COMMIT_HASH}\" }"
