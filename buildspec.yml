@@ -27,14 +27,14 @@ phases:
       - export GIT_COMMIT_HASH_SHORT="$(git show --no-patch --format=%h)"
 
       - export GIT_AUTHOR_NAME="$(git show --no-patch --format=%an)"
-      - export GIT_AUTHOR_DATE="$(git show --no-patch --format=%ad)"
+      - export GIT_AUTHOR_DATE="$(git show --no-patch --format=%ad --date=iso-strict)"
 
       - export GIT_COMMITTER_NAME="$(git show --no-patch --format=%cn)"
-      - export GIT_COMMITTER_DATE="$(git show --no-patch --format=%cd)"
+      - export GIT_COMMITTER_DATE="$(git show --no-patch --format=%cd --date=iso-strict)"
 
-      - export GIT_MSG="$(git show  --no-patch --format=%B)"
-      - export GIT_MSG_SUBJECT="$(git show  --no-patch --format=%s)"
-      - export GIT_MSG_BODY="$(git show  --no-patch --format=%b)"
+      - export GIT_MSG="$(git show  --no-patch --format=%B | sed -z -r 's/\n/\\n/g')"
+      - export GIT_MSG_SUBJECT="$(git show  --no-patch --format=%s | sed -z -r 's/\n/\\n/g')"
+      - export GIT_MSG_BODY="$(git show  --no-patch --format=%b | sed -z -r 's/\n/\\n/g')"
 
       - export GIT_TIMESTAMP="$(git show  --no-patch --format=%ad --date=format:'%Y-%m-%dT%H-%M-%S')"
 
@@ -70,7 +70,15 @@ phases:
       - |
         curl --location \
              --request POST \
-             https://admin.estudy.artidis.com/update/pipelines \
+             https://admin.artidisnet.com/update/pipelines \
              --header "Authorization: Bearer $EA_ACCESS_TOKEN" \
              --header "Content-Type: application/json" \
-             --data-raw "{\"image\": \"${GIT_REPO_NAME}:${TAG}\", \"commitHash\": \"${GIT_COMMIT_HASH}\" }"
+             --data-binary @- <<EOF
+             {
+               "image":         "${GIT_REPO_NAME}:${TAG}",
+               "commitHash":    "${GIT_COMMIT_HASH}",
+               "commitMessage": "${GIT_MSG}",
+               "commitAuthor":  "${GIT_AUTHOR_NAME}",
+               "commitDate":    "${GIT_AUTHOR_DATE}"
+             }
+             EOF
