@@ -27,7 +27,8 @@ RUN DEBIAN_FRONTEND=noninteractive \
     --disable-static \
     --enable-gtk-doc-html=no \
     --enable-gtk-doc=no \
-    --enable-pyvips8=no && \
+    --enable-pyvips8=no \
+    --with-openslide \
   make && \
   make install && \
   ldconfig
