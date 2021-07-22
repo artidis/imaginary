@@ -1,6 +1,7 @@
 ARG GOLANG_VERSION=1.13.7
 FROM golang:${GOLANG_VERSION} as builder
 
+#ARGS are changed during build - dev is just a placeholder
 ARG RELEASE=dev
 ARG COMMIT=dev
 ARG LIBVIPS_VERSION=8.9.1
