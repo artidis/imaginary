@@ -1,7 +1,8 @@
 ARG GOLANG_VERSION=1.13.7
 FROM golang:${GOLANG_VERSION} as builder
 
-ARG IMAGINARY_VERSION=dev
+ARG RELEASE=dev
+ARG COMMIT=dev
 ARG LIBVIPS_VERSION=8.9.1
 ARG GOLANGCILINT_VERSION=1.23.3
 
@@ -56,7 +57,7 @@ RUN golangci-lint run ./...
 # Compile imaginary
 RUN go build -a \
     -o ${GOPATH}/bin/imaginary \
-    -ldflags="-s -w -h -X main.Version=${IMAGINARY_VERSION}" \
+    -ldflags="-s -w -h -X main.Version=${RELEASE}-${COMMIT}" \
     github.com/h2non/imaginary
 
 FROM debian:buster-slim
