@@ -3,19 +3,23 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
+	"crypto/rand"
+	"encoding/binary"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"golang.org/x/sync/errgroup"
 )
 
-func init() {
-	// TODO: since we are using rand, we need this seed somewhere better
-	rand.Seed(time.Now().UnixNano())
+func randint64() (int64) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return 0
+	}
+	return int64(binary.LittleEndian.Uint64(b[:]))
 }
+
 
 // Make sure that all implementations implement ImageDownUploader
 var (
@@ -92,9 +96,9 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 				fmt.Printf("dzfiles: error: %s", err)
 			}
 		}()
-
-		localDirPath := fmt.Sprintf("/tmp/dzFiles-%d", rand.Uint64())
-		if err := os.Mkdir(localDirPath, 0777); err != nil {
+		
+		localDirPath := fmt.Sprintf("/tmp/dzFiles-%d", randint64())
+		if err := os.Mkdir(localDirPath, 0600); err != nil {
 			return fmt.Errorf("dzfiles: error creating tmp dir: %w", err)
 		}
 		defer os.RemoveAll(localDirPath)
@@ -188,7 +192,7 @@ func generateDZFiles(dirPath string, data []byte, imageName string, fileExtensio
 	imagePath := fmt.Sprintf("%s/%s", dirPath, imageName)
 
 	tiffImagePath := imagePath + fileExtension
-	if err := ioutil.WriteFile(tiffImagePath, data, 0777); err != nil {
+	if err := ioutil.WriteFile(tiffImagePath, data, 0600); err != nil {
 		return fmt.Errorf("dzfiles: error saving tiff image to disk: %w", err)
 	}
 

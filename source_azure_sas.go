@@ -53,7 +53,7 @@ func (s *AzureSASImageSource) GetImage(r *http.Request) ([]byte, error) {
 		),
 	)
 
-	dlResp, err := blobURL.Download(r.Context(), 0, 0, azblob.BlobAccessConditions{}, false,azblob.ClientProvidedKeyOptions{})
+	dlResp, err := blobURL.Download(r.Context(), 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("azure_sas: error downloading blob: %w", err)
 	}
@@ -84,7 +84,7 @@ func uploadBufferToAzureSAS(data []byte, sasURL *url.URL) error {
 		azblob.BlobHTTPHeaders{},
 		azblob.Metadata{},
 		azblob.BlobAccessConditions{},
-		azblob.DefaultAccessTier, 
+		azblob.DefaultAccessTier,
 		nil,
 		azblob.ClientProvidedKeyOptions{},
 	); err != nil {
@@ -122,7 +122,7 @@ func (a *AzureSASSource) DownloadImage(container, imageKey string) ([]byte, erro
 		),
 	)
 
-	dlResp, err := blobURL.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false,azblob.ClientProvidedKeyOptions{})
+	dlResp, err := blobURL.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false, azblob.ClientProvidedKeyOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("azure_sas: error downloading blob: %w", err)
 	}
@@ -163,7 +163,7 @@ func (a *AzureSASSource) UploadImage(data []byte, fileKey, container string) err
 		azblob.BlobHTTPHeaders{},
 		azblob.Metadata{},
 		azblob.BlobAccessConditions{},
-		azblob.DefaultAccessTier, 
+		azblob.DefaultAccessTier,
 		nil,
 		azblob.ClientProvidedKeyOptions{},
 	); err != nil {
