@@ -113,6 +113,7 @@ func NewServerMux(o ServerOptions) http.Handler {
 	mux.Handle(join(o, "/"), Middleware(indexController(o), o))
 	mux.Handle(join(o, "/form"), Middleware(formController(o), o))
 	mux.Handle(join(o, "/health"), Middleware(healthController, o))
+	mux.Handle(join(o, "/dzsave"), Middleware(DZSave, o))
 
 	image := ImageMiddleware(o)
 	mux.Handle(join(o, "/resize"), image(Resize))
@@ -130,6 +131,7 @@ func NewServerMux(o ServerOptions) http.Handler {
 	mux.Handle(join(o, "/convert"), image(Convert))
 	mux.Handle(join(o, "/watermark"), image(Watermark))
 	mux.Handle(join(o, "/watermarkimage"), image(WatermarkImage))
+	mux.Handle(join(o, "/watermarkimagesvg"), image(WatermarkImageSVG))
 	mux.Handle(join(o, "/info"), image(Info))
 	mux.Handle(join(o, "/blur"), image(GaussianBlur))
 	mux.Handle(join(o, "/pipeline"), image(Pipeline))
