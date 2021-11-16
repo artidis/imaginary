@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,14 +12,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func randint64() (int64) {
+func randint64() int64 {
 	var b [8]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return 0
 	}
 	return int64(binary.LittleEndian.Uint64(b[:]))
 }
-
 
 // Make sure that all implementations implement ImageDownUploader
 var (
@@ -96,7 +95,7 @@ func UploadDZFiles(dzConf DZFilesConfig) error {
 				fmt.Printf("dzfiles: error: %s", err)
 			}
 		}()
-		
+
 		localDirPath := fmt.Sprintf("/tmp/dzFiles-%d", randint64())
 		if err := os.Mkdir(localDirPath, 0600); err != nil {
 			return fmt.Errorf("dzfiles: error creating tmp dir: %w", err)
