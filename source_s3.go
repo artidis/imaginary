@@ -3,17 +3,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/h2non/bimg"
-	"github.com/h2non/filetype"
-	"net/http"
-	"os"
-	"strconv"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/h2non/bimg"
+	"github.com/h2non/filetype"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 const ImageSourceTypeS3 ImageSourceType = "s3"
@@ -164,58 +163,16 @@ func getMetadata(buffer []byte) (map[string]*string, error) {
 		if err != nil {
 			return nil, NewError("Cannot retrieve image metadata: %s"+err.Error(), http.StatusBadRequest)
 		}
-		resolution, err := getResolution(meta.EXIF)
-		if err != nil {
-			return nil, NewError("Cannot retrieve or invalid image resolution: %s"+err.Error(), http.StatusUnsupportedMediaType)
-		}
 		return map[string]*string{
-			"width":  aws.String(strconv.Itoa(meta.Size.Width)),
-			"height": aws.String(strconv.Itoa(meta.Size.Height)),
-			"xRes":   aws.String(resolution.XRes),
-			"yRes":   aws.String(resolution.YRes),
+			"width":          aws.String(strconv.Itoa(meta.Size.Width)),
+			"height":         aws.String(strconv.Itoa(meta.Size.Height)),
+			"xResolution":    aws.String(meta.EXIF.XResolution),
+			"yResolution":    aws.String(meta.EXIF.YResolution),
+			"resolutionUnit": aws.String(strconv.Itoa(meta.EXIF.ResolutionUnit)),
+			"channels":       aws.String(strconv.Itoa(meta.Channels)),
+			"orientation":    aws.String(strconv.Itoa(meta.Orientation)),
 		}, nil
 	}
 
 	return make(map[string]*string), nil
-}
-
-func getResolution(metaexif bimg.EXIF) (ImageResolution, error) {
-	var xRes, yRes float64
-	var err error
-
-	if xRes, err = strconv.ParseFloat(metaexif.XResolution, 64); err != nil {
-		return ImageResolution{}, err
-	}
-	if yRes, err = strconv.ParseFloat(metaexif.YResolution, 64); err != nil {
-		return ImageResolution{}, err
-	}
-
-	if err = validXResYRes(xRes, yRes); err != nil {
-		return ImageResolution{}, err
-
-	}
-	unitFactorInMM := unitFactorToMM(metaexif.ResolutionUnit)
-
-	xResStr := fmt.Sprintf("%f", xRes*unitFactorInMM)
-	yResStr := fmt.Sprintf("%f", yRes*unitFactorInMM)
-
-	return ImageResolution{XRes: xResStr, YRes: yResStr}, nil
-}
-
-func unitFactorToMM(resUnit int) float64 {
-	switch resUnit {
-	case 2: // inches
-		return 25.4
-	case 3: // centimeters
-		return 10
-	}
-	return 1
-}
-
-// better validation of input
-func validXResYRes(xRes, yRes float64) error {
-	if xRes == 1.0 || yRes == 1.0 {
-		return fmt.Errorf("validXResYRes: invalid resolution xres: %.2f, yres: %.2f", xRes, yRes)
-	}
-	return nil
 }

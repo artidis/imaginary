@@ -60,12 +60,6 @@ type ImageInfo struct {
 	Orientation int    `json:"orientation"`
 }
 
-// ImageResolution represents the image resolution x and y in mm
-type ImageResolution struct {
-	XRes string
-	YRes string
-}
-
 func Info(buf []byte, o ImageOptions) (Image, error) {
 	// We're not handling an image here, but we reused the struct.
 	// An interface will be definitively better here.
