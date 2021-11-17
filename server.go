@@ -23,6 +23,7 @@ type ServerOptions struct {
 	HTTPWriteTimeout   int
 	MaxAllowedSize     int
 	CORS               bool
+	CORSURLs					 string
 	Gzip               bool // deprecated
 	AuthForwarding     bool
 	EnableURLSource    bool

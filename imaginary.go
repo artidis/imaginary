@@ -25,6 +25,7 @@ var (
 	aHelpl              = flag.Bool("help", false, "Show help")
 	aPathPrefix         = flag.String("path-prefix", "/", "Url path prefix to listen to")
 	aCors               = flag.Bool("cors", false, "Enable CORS support")
+	aCorsURLs           = flag.String("cors-urls", "", "Cors URL-s separated by comma")
 	aGzip               = flag.Bool("gzip", false, "Enable gzip compression (deprecated)")
 	aAuthForwarding     = flag.Bool("enable-auth-forwarding", false, "Forwards X-Forward-Authorization or Authorization header to the image source server. -enable-url-source flag must be defined. Tip: secure your server from public access to prevent attack vectors")
 	aEnableURLSource    = flag.Bool("enable-url-source", false, "Enable remote HTTP URL image source processing")
@@ -135,6 +136,7 @@ func main() {
 		Port:               port,
 		Address:            *aAddr,
 		CORS:               *aCors,
+		CORSURLs:               *aCorsURLs,
 		AuthForwarding:     *aAuthForwarding,
 		EnableURLSource:    *aEnableURLSource,
 		EnablePlaceholder:  *aEnablePlaceholder,
