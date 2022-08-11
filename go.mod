@@ -11,6 +11,7 @@ require (
 	github.com/hashicorp/golang-lru v0.0.0-20160813221303-0a025b7e63ad // indirect
 	github.com/rs/cors v0.0.0-20170727213201-7af7a1e09ba3
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	gopkg.in/h2non/bimg.v1 v1.0.19
 	gopkg.in/h2non/filetype.v1 v1.0.3
 	gopkg.in/throttled/throttled.v2 v2.0.3
