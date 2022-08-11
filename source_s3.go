@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/h2non/bimg"
 	"github.com/h2non/filetype"
 	"net/http"
-	"os"
 	"strconv"
 )
 
@@ -22,14 +20,16 @@ func init() {
 }
 
 func newS3Session(region string) (*session.Session, error) {
-	return session.NewSession(&aws.Config{
-		Region: &region,
-		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("S3_KEY"),
-			os.Getenv("S3_KEY_SECRET"),
-			"",
-		),
+	session, err := session.NewSessionWithOptions(session.Options{
+		Config:            aws.Config{Region: &region},
+		SharedConfigState: session.SharedConfigEnable,
 	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error creating aws session: %w", err)
+	}
+
+	return session, nil
 }
 
 type S3ImageSource struct {
