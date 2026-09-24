@@ -23,14 +23,11 @@ func init() {
 }
 
 func newS3Session(region string) (*session.Session, error) {
-	return session.NewSession(&aws.Config{
-		Region: &region,
-		Credentials: credentials.NewStaticCredentials(
-			os.Getenv("S3_KEY"),
-			os.Getenv("S3_KEY_SECRET"),
-			"",
-		),
-	})
+	cfg := &aws.Config{Region: &region}
+	if key, secret := os.Getenv("S3_KEY"), os.Getenv("S3_KEY_SECRET"); key != "" && secret != "" {
+		cfg.Credentials = credentials.NewStaticCredentials(key, secret, "")
+	}
+	return session.NewSession(cfg)
 }
 
 type S3ImageSource struct {
