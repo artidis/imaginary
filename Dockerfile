@@ -1,5 +1,5 @@
-ARG GOLANG_VERSION=1.17
-FROM golang:${GOLANG_VERSION} as builder
+ARG GOLANG_VERSION=1.26.6
+FROM golang:${GOLANG_VERSION} AS builder
 
 #ARGS are changed during build - dev is just a placeholder
 ARG RELEASE=dev
@@ -10,15 +10,15 @@ ARG GOLANGCILINT_VERSION=1.23.3
 # Installs libvips + required libraries
 RUN DEBIAN_FRONTEND=noninteractive \
   apt-get upgrade && \
-  apt-get update && \ 
+  apt-get update && \
   apt-get install --no-install-recommends -y \
   ca-certificates \
   automake build-essential curl \
   gobject-introspection gtk-doc-tools libglib2.0-dev libjpeg62-turbo-dev libpng-dev \
   libwebp-dev libtiff5-dev libgif-dev libexif-dev libxml2-dev libpoppler-glib-dev \
   swig libmagickwand-dev libpango1.0-dev libmatio-dev libopenslide-dev libcfitsio-dev \
-  libgsf-1-dev fftw3-dev liborc-0.4-dev librsvg2-dev libopenjp2-7-dev libheif-dev \
-  libimagequant-dev 
+  libgsf-1-dev libfftw3-dev liborc-0.4-dev librsvg2-dev libopenjp2-7-dev libheif-dev \
+  libimagequant-dev
 
 RUN cd /tmp && \
   ldconfig && \
@@ -61,6 +61,8 @@ RUN go build -a \
 FROM debian:stable-slim
 
 ARG IMAGINARY_VERSION
+ARG RELEASE
+ARG COMMIT
 
 LABEL maintainer="tomas@aparicio.me" \
       org.label-schema.description="Fast, simple, scalable HTTP microservice for high-level image processing with first-class Docker support" \
@@ -76,13 +78,13 @@ COPY --from=builder /usr/local/bin/vips /usr/local/bin/vips
 
 # Install runtime dependencies
 RUN DEBIAN_FRONTEND=noninteractive \
-  apt-get upgrade && \ 
+  apt-get upgrade && \
   apt-get update && \
   apt-get install --no-install-recommends -y \
-  libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr25 \
-  libwebp6 libwebpmux3 libwebpdemux2 libtiff5 libgif7 libexif12 libxml2 libpoppler-glib8 \
-  libmagickwand-6.q16-6 libpango1.0-0 libmatio11 libopenslide0 \
-  libgsf-1-114 fftw3 liborc-0.4-0 librsvg2-2 libcfitsio9 libopenjp2-7 libheif1 \
+  libglib2.0-0 libjpeg62-turbo libpng16-16 libopenexr-3-1-30 \
+  libwebp7 libwebpmux3 libwebpdemux2 libtiff6 libgif7 libexif12 libxml2 libpoppler-glib8 \
+  libmagickwand-7.q16-10 libpango-1.0-0 libmatio13 libopenslide0 \
+  libgsf-1-114 libfftw3-double3 liborc-0.4-0 librsvg2-2 libcfitsio10t64 libopenjp2-7 libheif1 \
   libimagequant0 && \
   apt-get autoremove -y && \
   apt-get autoclean && \
@@ -90,7 +92,7 @@ RUN DEBIAN_FRONTEND=noninteractive \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Server port to listen
-ENV PORT 9000
+ENV PORT=9000
 
 # Run the entrypoint command by default when the container starts.
 ENTRYPOINT ["/usr/local/bin/imaginary"]
